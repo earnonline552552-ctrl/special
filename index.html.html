@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>PRIVATE CONNECTION // For Priya Jii</title>
+<style>
+  :root{
+    --green:#fdf3ff;
+    --green-dim:#7a5a9c;
+    --green-glow: rgba(255,255,255,0.45);
+    --bg:#1a0b2e;
+    --panel:#241238;
+    --pink:#ff4fb8;
+    --pink-glow: rgba(255,79,184,0.55);
+    --purple:#b46eff;
+    --purple-glow: rgba(180,110,255,0.5);
+    --orange:#ff9a56;
+    --orange-glow: rgba(255,154,86,0.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,79,184,0.18), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(255,154,86,0.14), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(180,110,255,0.20), transparent 55%),
+      linear-gradient(180deg, #1a0b2e, #170a26 55%, #12081f);
+    color:var(--green);
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x:hidden;
+  }
+  canvas#matrix{
+    position:fixed; inset:0; width:100%; height:100%;
+    z-index:0; opacity:0.55;
+  }
+  .scanlines{
+    position:fixed; inset:0; z-index:5; pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 3px,
+      rgba(0,0,0,0.06) 4px,
+      rgba(0,0,0,0.06) 4px
+    );
+    mix-blend-mode:soft-light;
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:5; pointer-events:none;
+    box-shadow: inset 0 0 18vw 6vw rgba(15,5,25,0.55);
+  }
+  #flash{
+    position:fixed; inset:0; z-index:50; pointer-events:none;
+    background: linear-gradient(135deg, var(--pink), var(--orange), var(--purple)); opacity:0; 
+  }
+  #flash.on{
+    animation: flashPulse 0.6s ease-out 4;
+  }
+  @keyframes flashPulse{
+    0%{opacity:0;} 15%{opacity:0.55;} 100%{opacity:0;}
+  }
+  .wrap{
+    position:relative; z-index:2;
+    min-height:100vh;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding: 28px 14px 80px;
+  }
+  #terminal{
+    width:100%; max-width:680px;
+    background: linear-gradient(180deg, rgba(36,18,56,0.92), rgba(26,11,46,0.96));
+    border:1px solid var(--green-dim);
+    border-radius:14px;
+    box-shadow: 0 0 2px var(--purple), 0 0 40px rgba(180,110,255,0.15), 0 0 30px rgba(255,79,184,0.12), inset 0 0 60px rgba(255,154,86,0.05);
+    overflow:hidden;
+  }
+  #titlebar{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px;
+    background: linear-gradient(90deg, rgba(255,79,184,0.08), rgba(180,110,255,0.08), rgba(255,154,86,0.08));
+    border-bottom:1px solid var(--green-dim);
+    font-size:12px; letter-spacing:1px;
+  }
+  #titlebar .dot{width:9px;height:9px;border-radius:50%;background:var(--green-dim);}
+  #titlebar .dot.a{background:var(--pink); box-shadow:0 0 6px var(--pink);}
+  #titlebar .dot.b{background:var(--orange); box-shadow:0 0 6px var(--orange);}
+  #titlebar .dot.c{background:var(--purple); box-shadow:0 0 6px var(--purple);}
+  #titlebar .path{margin-left:auto; opacity:0.65;}
+  #output{
+    padding: 22px 20px 8px;
+    min-height: 320px;
+    font-size:15px;
+    line-height:1.75;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+    text-shadow: 0 0 5px rgba(255,255,255,0.35), 0 0 14px var(--purple-glow), 0 0 20px var(--pink-glow);
+  }
+  .line{margin:0;}
+  .spacer{height:10px;}
+  .dim{color:var(--green-dim); text-shadow:none;}
+  .pink{color:var(--pink); text-shadow:0 0 6px var(--pink-glow);}
+  .priya-glow{
+    color:#fffdfe;
+    font-weight:700;
+    text-shadow: 0 0 6px #ffffff, 0 0 14px var(--pink), 0 0 24px var(--pink-glow), 0 0 34px var(--purple-glow);
+  }
+  #cursor{
+    display:inline-block; width:9px; height:16px;
+    background:var(--green); box-shadow:0 0 8px var(--green);
+    vertical-align:middle; margin-left:2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+  #buttons{
+    display:flex; flex-wrap:wrap; gap:10px;
+    padding: 6px 18px 22px;
+  }
+  .btn{
+    appearance:none; cursor:pointer;
+    background:linear-gradient(135deg, rgba(255,79,184,0.10), rgba(180,110,255,0.10), rgba(255,154,86,0.10));
+    color:var(--green);
+    border:1px solid var(--green-dim);
+    border-radius:20px;
+    padding:10px 18px;
+    font-family:inherit;
+    font-size:14px;
+    letter-spacing:0.3px;
+    transition: all 0.25s ease;
+    text-shadow:0 0 4px rgba(255,255,255,0.5);
+  }
+  .btn:hover, .btn:focus-visible{
+    background:linear-gradient(135deg, rgba(255,79,184,0.22), rgba(180,110,255,0.22), rgba(255,154,86,0.22));
+    border-color:var(--pink);
+    box-shadow:0 0 14px var(--pink-glow), 0 0 20px var(--purple-glow), 0 0 10px var(--orange-glow);
+    transform:translateY(-1px);
+    outline:none;
+  }
+  .btn:active{transform:translateY(0px) scale(0.98);}
+  .field-row{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    padding: 4px 18px 14px;
+  }
+  .field-row label{font-size:13px; opacity:0.8; min-width:70px;}
+  input.term-input{
+    background:#1c0e2e;
+    border:1px solid var(--green-dim);
+    color:var(--green);
+    font-family:inherit;
+    font-size:15px;
+    padding:9px 10px;
+    border-radius:10px;
+    flex:1;
+    min-width:140px;
+    text-shadow:0 0 4px rgba(255,255,255,0.4);
+  }
+  input.term-input:focus{
+    outline:none;
+    border-color:var(--pink);
+    box-shadow:0 0 12px var(--pink-glow);
+  }
+  #filelist{
+    padding: 4px 18px 20px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .file-item{
+    display:flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg, rgba(255,79,184,0.05), rgba(180,110,255,0.05));
+    border:1px solid var(--green-dim);
+    border-radius:10px;
+    padding:10px 14px;
+    cursor:pointer;
+    transition:all .2s ease;
+    font-size:14.5px;
+  }
+  .file-item:hover{background:linear-gradient(135deg, rgba(255,79,184,0.14), rgba(180,110,255,0.14)); box-shadow:0 0 12px var(--pink-glow);}
+  #modalLayer{
+    position:fixed; inset:0; z-index:60;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(15,5,25,0.78);
+    padding:16px;
+  }
+  #modalLayer.show{display:flex;}
+  .modal-box{
+    width:100%; max-width:520px;
+    background:linear-gradient(180deg, rgba(36,18,56,0.97), rgba(24,10,42,0.99));
+    border:1px solid var(--purple);
+    border-radius:14px;
+    box-shadow:0 0 40px var(--purple-glow), 0 0 24px var(--pink-glow);
+    padding:20px 18px;
+    max-height:80vh; overflow-y:auto;
+    white-space:pre-wrap;
+    line-height:1.7;
+    font-size:14.5px;
+    text-shadow:0 0 5px rgba(255,255,255,0.35);
+  }
+  .modal-box .btn{margin-top:14px;}
+  .hearts-layer{position:fixed; inset:0; z-index:45; pointer-events:none; overflow:hidden;}
+  .heart{
+    position:absolute; bottom:-30px; font-size:20px;
+    animation: floatUp linear forwards;
+    filter: drop-shadow(0 0 6px rgba(255,79,184,0.7)) drop-shadow(0 0 8px rgba(180,110,255,0.4));
+  }
+  @keyframes floatUp{
+    0%{ transform: translateY(0) translateX(0) rotate(0deg); opacity:1;}
+    100%{ transform: translateY(-115vh) translateX(var(--drift,0px)) rotate(360deg); opacity:0;}
+  }
+  canvas#confetti{position:fixed; inset:0; z-index:46; pointer-events:none;}
+  .mission-title{
+    font-size:13px; letter-spacing:3px; color:var(--pink);
+  }
+  #bootScreen{
+    position:fixed; inset:0; z-index:70;
+    background: radial-gradient(circle at 50% 40%, rgba(180,110,255,0.25), transparent 60%), linear-gradient(180deg, #1a0b2e, #12081f);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    color:var(--green); font-size:15px; text-align:center; padding:20px;
+    text-shadow:0 0 8px rgba(255,255,255,0.4);
+  }
+  #bootScreen.show{display:flex;}
+  .boot-bar{
+    width:70%; max-width:340px; height:10px; border:1px solid var(--green-dim);
+    margin-top:16px; border-radius:8px; overflow:hidden;
+  }
+  .boot-bar-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--pink), var(--orange), var(--purple)); box-shadow:0 0 10px var(--pink-glow);}
+  @media (max-width:480px){
+    #output{font-size:13.5px; padding:16px 12px 6px;}
+    .btn{font-size:13px; padding:9px 12px;}
+    #terminal{max-width:100%;}
+    .wrap{padding:16px 8px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div id="flash"></div>
+<canvas id="confetti"></canvas>
+<div class="hearts-layer" id="heartsLayer"></div>
+
+<div id="bootScreen">
+  <div class="mission-title">PRIVATE CONNECTION</div>
+  <div id="bootText" style="margin-top:10px;">Establishing secure connection...</div>
+  <div class="boot-bar"><div class="boot-bar-fill" id="bootFill"></div></div>
+</div>
+
+<div id="modalLayer">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<div class="wrap">
+  <div id="terminal">
+    <div id="titlebar">
+      <span class="dot a"></span><span class="dot b"></span><span class="dot c"></span>
+      <span>💌 a little surprise</span>
+      <span class="path">for Priya Jii</span>
+    </div>
+    <div id="output"></div>
+    <div id="fieldArea"></div>
+    <div id="filelist" style="display:none;"></div>
+    <div id="buttons"></div>
+  </div>
+</div>
+
+<script>
+/* ============ AUDIO (disabled — site is silent) ============ */
+function ensureAudio(){}
+function playTick(){}
+function playBoot(){}
+function playSuccess(){}
+function playHeartbeat(){}
+
+/* ============ AMBIENT ROMANTIC BACKGROUND ============ */
+const matrixCanvas = document.getElementById('matrix');
+const mctx = matrixCanvas.getContext('2d');
+let bokehParticles = [];
+const bokehColors = ['#ff4fb8','#ff9a56','#b46eff','#ffffff','#ff77c8'];
+function makeBokeh(w,h){
+  return {
+    x: Math.random()*w,
+    y: h + Math.random()*h*0.5,
+    r: 6 + Math.random()*22,
+    c: bokehColors[Math.floor(Math.random()*bokehColors.length)],
+    vy: 0.25 + Math.random()*0.6,
+    phase: Math.random()*Math.PI*2,
+    amp: 10 + Math.random()*30,
+    baseOpacity: 0.12 + Math.random()*0.22
+  };
+}
+function sizeMatrix(){
+  matrixCanvas.width = window.innerWidth;
+  matrixCanvas.height = window.innerHeight;
+  const count = Math.max(24, Math.floor((matrixCanvas.width*matrixCanvas.height)/45000));
+  bokehParticles = new Array(count).fill(0).map(()=>{
+    const p = makeBokeh(matrixCanvas.width, matrixCanvas.height);
+    p.y = Math.random()*matrixCanvas.height;
+    return p;
+  });
+}
+sizeMatrix();
+window.addEventListener('resize', sizeMatrix);
+
+function drawMatrix(){
+  mctx.clearRect(0,0,matrixCanvas.width, matrixCanvas.height);
+  const t = performance.now()/1000;
+  bokehParticles.forEach(p=>{
+    p.y -= p.vy;
+    if(p.y < -p.r*2){
+      Object.assign(p, makeBokeh(matrixCanvas.width, matrixCanvas.height));
+      p.y = matrixCanvas.height + p.r;
+    }
+    const x = p.x + Math.sin(t*0.4 + p.phase)*p.amp*0.15;
+    const twinkle = 0.7 + 0.3*Math.sin(t*1.3 + p.phase);
+    const grad = mctx.createRadialGradient(x, p.y, 0, x, p.y, p.r);
+    const opacity = p.baseOpacity * twinkle;
+    grad.addColorStop(0, hexToRgba(p.c, opacity));
+    grad.addColorStop(1, hexToRgba(p.c, 0));
+    mctx.fillStyle = grad;
+    mctx.beginPath();
+    mctx.arc(x, p.y, p.r, 0, Math.PI*2);
+    mctx.fill();
+  });
+  requestAnimationFrame(drawMatrix);
+}
+function hexToRgba(hex, a){
+  const v = hex.replace('#','');
+  const r = parseInt(v.substring(0,2),16);
+  const g = parseInt(v.substring(2,4),16);
+  const b = parseInt(v.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+drawMatrix();
+
+/* ============ TERMINAL ENGINE ============ */
+const output = document.getElementById('output');
+const buttonsEl = document.getElementById('buttons');
+const fieldArea = document.getElementById('fieldArea');
+const filelistEl = document.getElementById('filelist');
+let screenGen = 0;
+let cursorEl = null;
+
+function delay(ms){ return new Promise(res=> setTimeout(res, ms)); }
+
+function highlightPriya(text){
+  return text.replace(/priya jii/gi, (m)=> `<span class="priya-glow">${m}</span>`);
+}
+
+function clearOutput(){
+  screenGen++;
+  output.innerHTML = '';
+  buttonsEl.innerHTML = '';
+  fieldArea.innerHTML = '';
+  filelistEl.style.display = 'none';
+  filelistEl.innerHTML = '';
+  removeCursor();
+  return screenGen;
+}
+function removeCursor(){
+  if(cursorEl && cursorEl.parentNode) cursorEl.parentNode.removeChild(cursorEl);
+  cursorEl = null;
+}
+function scrollDown(){
+  window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
+}
+
+async function typeLine(text, gen, speed=65){
+  if(gen !== screenGen) return;
+  const div = document.createElement('div');
+  div.className = 'line';
+  output.appendChild(div);
+  let built = '';
+  for(let i=0;i<text.length;i++){
+    if(gen !== screenGen) return;
+    built += text[i];
+    div.innerHTML = highlightPriya(built);
+    await delay(speed + Math.random()*30);
+  }
+  scrollDown();
+}
+
+async function typeBlock(lines, gen, speed){
+  for(const line of lines){
+    if(gen !== screenGen) return;
+    if(line === ''){
+      const sp = document.createElement('div');
+      sp.className = 'spacer';
+      output.appendChild(sp);
+      await delay(220);
+    } else {
+      await typeLine(line, gen, speed);
+      await delay(160);
+    }
+  }
+}
+
+function showButtons(list, gen){
+  if(gen !== screenGen) return;
+  buttonsEl.innerHTML = '';
+  list.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = b.label;
+    btn.addEventListener('click', ()=>{ ensureAudio(); b.onClick(); });
+    buttonsEl.appendChild(btn);
+  });
+}
+
+/* ============ SCREEN 1 ============ */
+async function screen1(){
+  const gen = clearOutput();
+  await typeBlock([
+    '████████████████████████████',
+    'PRIVATE CONNECTION',
+    '████████████████████████████',
+    '',
+    'Establishing Secure Connection...',
+    '',
+    'Searching...',
+    'Searching...Opening...',
+    '',
+    'This file',
+    'cannot be opened',
+    'until the visitor smiles.',
+    '😊',
+    '',
+    'Have you smiled?'
+  ], gen);
+  showButtons([
+    { label:'❤️ Yes', onClick: ()=> smileVerified(gen) },
+    { label:'🙈 Maybe', onClick: ()=> smileVerified(gen) }
+  ], gen);
+}
+
+async function smileVerified(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    'Smile Verified.',
+    '',
+    'Opening...',
+    'Success.',
+    '',
+    'Looking for one special visitor...',
+    '',
+    'Identity Match Found ✓',
+    '',
+    'Hello...',
+    '',
+    'Priya Jii. ❤️',
+    '',
+    'Before this website opens...',
+    '',
+    'I need one confirmation.',
+    '',
+    "Are you the same Priya Jii...",
+    'whose smile quietly inspired someone',
+    'to spend hours',
+    'building this little surprise?',
+    '',
+    'Because...',
+    '',
+    "this website wasn't created",
+    'for everyone.',
+    '',
+    'It was created',
+    'hoping that one day...',
+    'you would open it.'
+  ], gen);
+  showButtons([
+    { label:"❤️ Yes... that's me", onClick: ()=> yesThatsMe(gen) },
+    { label:"🤔 Who's asking?", onClick: ()=> whosAsking(gen) }
+  ], gen);
+}
+
+async function yesThatsMe(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    'Perfect. ❤️',
+    '',
+    'I was hoping',
+    "you'd say that.",
+    '',
+    'Someone left',
+    'a little surprise here...',
+    '',
+    'with one very specific instruction.',
+    '',
+    '"Only Priya Jii',
+    'is allowed to continue."',
+    '',
+    'Looks like...',
+    '',
+    'you have permission.',
+    '',
+    'Welcome. 😊'
+  ], gen);
+  showButtons([{ label:'➡️ Continue', onClick: ()=> screen2() }], gen);
+}
+
+async function whosAsking(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    'Identity of the creator...',
+    '',
+    'Classified. 😄',
+    '',
+    'Complete the mission...',
+    '',
+    'and every answer',
+    'will reveal itself.',
+    '',
+    'Trust me...',
+    "it's worth it.",
+    '',
+    '❤️'
+  ], gen);
+  showButtons([{ label:"😊 Alright, I'm In", onClick: ()=> screen2() }], gen);
+}
+
+/* ============ SCREEN 2 ============ */
+async function screen2(){
+  const gen = clearOutput();
+  await typeBlock([
+    'Before we begin...',
+    '',
+    'Can I ask you something?',
+    '',
+    '(Just one tiny question...)',
+    '',
+    'How are you today? 🌸'
+  ], gen);
+  showButtons([
+    { label:"❤️ I'm smiling already", onClick: ()=> screen2b(gen) },
+    { label:"😊 I'm blushing", onClick: ()=> screen2b(gen) }
+  ], gen);
+}
+async function screen2b(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    'That makes me happy. ❤️',
+    '',
+    'Hopefully...',
+    '',
+    'by the time you finish this mission...',
+    "you'll be smiling",
+    'even more than you are now.',
+    '',
+    'Shall we continue?'
+  ], gen);
+  showButtons([{ label:"💚 Yes, Let's Continue", onClick: ()=> screen3() }], gen);
+}
+
+/* ============ SCREEN 3 ============ */
+async function screen3(){
+  const gen = clearOutput();
+  await typeBlock([
+    'One more question...',
+    '',
+    'What do you think',
+    'is the most beautiful gift',
+    'someone can give?'
+  ], gen);
+  showButtons([
+    { label:'💎 Something Expensive', onClick: ()=> screen3other(gen) },
+    { label:'❤️ Their Time & Effort', onClick: ()=> screen3correct(gen) },
+    { label:'🌸 A Meaningful Surprise', onClick: ()=> screen3other(gen) }
+  ], gen);
+}
+async function screen3correct(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    "That's a beautiful answer.",
+    '',
+    'Someone clearly agrees with you. ❤️'
+  ], gen);
+  showButtons([{ label:'🚀 Start Mission', onClick: ()=> screen4() }], gen);
+}
+async function screen3other(gen){
+  showButtons([], gen);
+  await typeBlock([
+    '',
+    'Interesting choice...',
+    '',
+    'But sometimes...',
+    '',
+    'time and effort',
+    'make even the smallest surprise',
+    'feel priceless.',
+    '',
+    '❤️'
+  ], gen);
+  showButtons([{ label:'🚀 Start Mission', onClick: ()=> screen4() }], gen);
+}
+
+/* ============ SCREEN 4 — PASSWORD ============ */
+let passwordSolved = false;
+let wrongAttempts = 0;
+
+async function screen4(){
+  const gen = clearOutput();
+  passwordSolved = false;
+  wrongAttempts = 0;
+  await typeBlock([
+    'MISSION INITIALIZED',
+    '',
+    'LEVEL 1',
+    '',
+    'Every secure system',
+    'needs one final verification.',
+    '',
+    'PASSWORD HINT',
+    '',
+    'It’s the nickname',
+    'Anil lovingly calls you.',
+    '',
+    'Password'
+  ], gen);
+  if(gen !== screenGen) return;
+
+  fieldArea.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.innerHTML = `
+    <input class="term-input" type="password" id="pwInput" placeholder="enter password..." autocomplete="off">
+    <button class="btn" id="pwSubmit">🔓 Submit</button>
+  `;
+  fieldArea.appendChild(row);
+  const pwInput = document.getElementById('pwInput');
+  const pwSubmit = document.getElementById('pwSubmit');
+  pwInput.focus();
+
+  const trySubmit = ()=>{
+    ensureAudio();
+    checkPassword(pwInput.value, gen);
+  };
+  pwSubmit.addEventListener('click', trySubmit);
+  pwInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') trySubmit(); });
+
+  // "no hurry" idle message
+  setTimeout(async ()=>{
+    if(gen !== screenGen || passwordSolved) return;
+    await typeBlock([
+      '',
+      'SYSTEM MESSAGE',
+      '',
+      'No hurry...',
+      '',
+      'Take your time.',
+      '',
+      "The surprise isn't going anywhere.",
+      '',
+      '❤️'
+    ], gen);
+  }, 13000);
+}
+
+async function checkPassword(value, gen){
+  const v = (value || '').trim().toLowerCase().replace(/\s+/g,' ');
+  if(v === 'priya jii' || v === 'priya ji'){
+    passwordSolved = true;
+    fieldArea.innerHTML = '';
+    playSuccess();
+    await verifyingSequence(gen);
+    return;
+  }
+  wrongAttempts++;
+  if(wrongAttempts === 1){
+    await typeBlock([
+      '',
+      'Access Denied.',
+      '',
+      'Hint:',
+      '',
+      'Someone calls you',
+      'something sweeter',
+      'than just "Priya." 😊'
+    ], gen);
+  } else {
+    await typeBlock([
+      '',
+      'Almost there...',
+      '',
+      "Don't forget",
+      'the "Jii."',
+      '',
+      '❤️'
+    ], gen);
+  }
+}
+
+async function verifyingSequence(gen){
+  await typeBlock([
+    '',
+    'Verifying...',
+    '',
+    'Checking Smile...',
+    '😊 Smile Detected',
+    '',
+    'Checking Kindness...',
+    '❤️ Passed',
+    '',
+    'Checking Cuteness...',
+    '⚠ Overflow',
+    '',
+    'Expected Visitor:',
+    'Priya Jii',
+    '',
+    'Waiting Time:',
+    'Completed ❤️',
+    '',
+    'Status:',
+    'Welcome.',
+    '',
+    'Access Granted ❤️',
+    '',
+    'Reason:',
+    "This system doesn't",
+    'recognize passwords.',
+    '',
+    'It recognizes people',
+    'worth creating surprises for.',
+    '',
+    '❤️'
+  ], gen);
+  if(gen !== screenGen) return;
+  await delay(900);
+  bootSequence();
+}
+
+/* ============ SCREEN 5 — BOOT ============ */
+async function bootSequence(){
+  const boot = document.getElementById('bootScreen');
+  const bootText = document.getElementById('bootText');
+  const bootFill = document.getElementById('bootFill');
+  boot.classList.add('show');
+  playBoot();
+  const lines = [
+    'ACCESS GRANTED ✓','','Identity Verified.','','Welcome...','','Priya Jii. ❤️',
+    '','Loading Secure Memories...','██████████████','','Initializing...','Decrypting...',
+    '','Opening Memory Vault...','','Loading Hidden Surprise...','','SYSTEM READY.'
+  ];
+  bootText.innerHTML = '';
+  let progress = 0;
+  for(const line of lines){
+    const d = document.createElement('div');
+    d.innerHTML = highlightPriya(line);
+    d.style.margin = '4px 0';
+    bootText.appendChild(d);
+    progress += 100/lines.length;
+    bootFill.style.width = Math.min(progress,100) + '%';
+    await delay(line === '' ? 220 : 460);
+  }
+  await delay(500);
+  boot.classList.remove('show');
+  bootText.innerHTML = 'Establishing secure connection...';
+  bootFill.style.width = '0%';
+  screen6();
+}
+
+/* ============ SCREEN 6 — FILES ============ */
+const fileContents = {
+  'diary.txt': [
+    'Diary Entry #261','',
+    'I wondered...','',
+    'Would someone actually','take a few minutes','just to discover','one small secret?','',
+    'Looks like...','someone special did.','','😊❤️'
+  ],
+  'future.txt': [
+    'Future Goals','',
+    '✔ Build cool things','✔ Travel more','✔ Keep smiling','',
+    '□ Celebrate one birthday...','',
+    'with someone','who smiled','while solving','this little mission.','','❤️'
+  ],
+  'thankyou.txt': [
+    'Hi Priya Jii,','',
+    "If you're reading this...",'',
+    'thank you.','',
+    'Not everyone','would spend their time','opening files...','clicking buttons...',
+    'and solving puzzles...','just to know',"someone's birthday.",'',
+    'The fact that you did...','',
+    'already means','more to me','than you probably realize.','','❤️'
+  ]
+};
+
+async function screen6(){
+  const gen = clearOutput();
+  await typeBlock([
+    'MISSION FILES',
+    '',
+    'Select a file to open:'
+  ], gen);
+  if(gen !== screenGen) return;
+  filelistEl.style.display = 'flex';
+  const items = [
+    { icon:'📄', name:'diary.txt' },
+    { icon:'📄', name:'future.txt' },
+    { icon:'🔒', name:'birthday.enc' },
+    { icon:'💌', name:'thankyou.txt' }
+  ];
+  items.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.textContent = `${it.icon}  ${it.name}`;
+    div.addEventListener('click', ()=>{
+      ensureAudio(); playTick();
+      if(it.name === 'birthday.enc'){ openEncrypted(); }
+      else { openTextFile(it.name); }
+    });
+    filelistEl.appendChild(div);
+  });
+}
+
+async function openTextFile(name){
+  const modal = document.getElementById('modalLayer');
+  const box = document.getElementById('modalBox');
+  box.innerHTML = '';
+  modal.classList.add('show');
+  const localGen = 'modal-' + Date.now();
+  currentModalGen = localGen;
+  const ok = await typeModalBlock(box, fileContents[name], localGen);
+  if(!ok) return;
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn';
+  closeBtn.textContent = '⬅ Close';
+  closeBtn.addEventListener('click', closeModal);
+  box.appendChild(closeBtn);
+}
+let currentModalGen = null;
+function closeModal(){
+  currentModalGen = null;
+  document.getElementById('modalLayer').classList.remove('show');
+}
+
+async function typeModalLine(container, text, localGen, speed=65){
+  const d = document.createElement('div');
+  container.appendChild(d);
+  let built = '';
+  for(let i=0;i<text.length;i++){
+    if(currentModalGen !== localGen) return false;
+    built += text[i];
+    d.innerHTML = highlightPriya(built);
+    await delay(speed + Math.random()*30);
+  }
+  return true;
+}
+
+async function typeModalBlock(container, lines, localGen, speed=65){
+  for(const line of lines){
+    if(currentModalGen !== localGen) return false;
+    if(line === ''){
+      const sp = document.createElement('div');
+      sp.style.height = '10px';
+      container.appendChild(sp);
+      await delay(160);
+    } else {
+      const ok = await typeModalLine(container, line, localGen, speed);
+      if(!ok) return false;
+      await delay(110);
+    }
+  }
+  return true;
+}
+
+/* ============ birthday.enc ============ */
+async function openEncrypted(){
+  const modal = document.getElementById('modalLayer');
+  const box = document.getElementById('modalBox');
+  box.innerHTML = '';
+  modal.classList.add('show');
+  const localGen = 'enc-' + Date.now();
+  currentModalGen = localGen;
+
+  const textLines = [
+    'ENCRYPTED ARCHIVE','',
+    'STATUS : LOCKED','',
+    'DAY','',
+    '(5 × 4)','+','(8 ÷ 2)','+','2','',
+    '━━━━━━━━━━━━━━','',
+    'MONTH','',
+    'The month','that quietly welcomes winter.'
+  ];
+  const ok = await typeModalBlock(box, textLines, localGen);
+  if(!ok) return;
+
+  const btnRow = document.createElement('div');
+  btnRow.style.marginTop = '14px';
+  btnRow.style.display = 'flex';
+  btnRow.style.gap = '10px';
+  btnRow.style.flexWrap = 'wrap';
+  const decryptBtn = document.createElement('button');
+  decryptBtn.className = 'btn'; decryptBtn.textContent = '🔓 Decrypt';
+  const hintBtn = document.createElement('button');
+  hintBtn.className = 'btn'; hintBtn.textContent = '💡 Hint';
+  btnRow.appendChild(decryptBtn); btnRow.appendChild(hintBtn);
+  box.appendChild(btnRow);
+
+  const noteArea = document.createElement('div');
+  noteArea.style.marginTop = '12px';
+  box.appendChild(noteArea);
+
+  hintBtn.addEventListener('click', ()=>{
+    ensureAudio(); playTick();
+    noteArea.innerHTML = '<div class="dim">DAY → solve the small math problem above.<br>MONTH → think of the month winter quietly begins to arrive. ❤️</div>';
+  });
+
+  decryptBtn.addEventListener('click', ()=>{
+    ensureAudio(); playTick();
+    noteArea.innerHTML = `
+      <div class="field-row" style="padding:8px 0;">
+        <label>Day</label>
+        <input class="term-input" id="dayInput" placeholder="??" autocomplete="off">
+      </div>
+      <div class="field-row" style="padding:0 0 8px;">
+        <label>Month</label>
+        <input class="term-input" id="monthInput" placeholder="??" autocomplete="off">
+      </div>
+      <button class="btn" id="decryptSubmit">✅ Confirm</button>
+      <div id="decryptMsg" style="margin-top:10px;"></div>
+    `;
+    document.getElementById('decryptSubmit').addEventListener('click', async ()=>{
+      ensureAudio();
+      const day = (document.getElementById('dayInput').value || '').trim();
+      const month = (document.getElementById('monthInput').value || '').trim().toLowerCase();
+      const dayOk = day === '26';
+      const monthOk = month === '11' || month === 'november' || month === 'nov';
+      const msg = document.getElementById('decryptMsg');
+      if(dayOk && monthOk){
+        msg.innerHTML = '<span class="pink">Correct. Decrypting...</span>';
+        playSuccess();
+        await delay(1000);
+        decryptFinalSequence();
+      } else {
+        msg.innerHTML = '<span class="dim">Incorrect. Try again.</span>';
+      }
+    });
+  });
+}
+
+async function decryptFinalSequence(){
+  const box = document.getElementById('modalBox');
+  box.innerHTML = '';
+  const localGen = currentModalGen;
+  const lines = [
+    'Decrypting...','',
+    '███████','',
+    'ERROR','',
+    'Secret Too Precious...','',
+    'Retry?'
+  ];
+  const ok = await typeModalBlock(box, lines, localGen);
+  if(!ok) return;
+  const yesBtn = document.createElement('button');
+  yesBtn.className = 'btn';
+  yesBtn.textContent = 'YES';
+  yesBtn.style.marginTop = '14px';
+  box.appendChild(yesBtn);
+  yesBtn.addEventListener('click', async ()=>{
+    ensureAudio();
+    yesBtn.remove();
+    const retryLine = document.createElement('div');
+    retryLine.style.marginTop = '10px';
+    box.appendChild(retryLine);
+    await typeModalLine(retryLine, 'Retry Successful ❤️', localGen);
+    await delay(700);
+    closeModal();
+    celebrationSequence();
+  });
+}
+
+/* ============ CELEBRATION ============ */
+function createHearts(count){
+  const layer = document.getElementById('heartsLayer');
+  const emojis = ['❤️','🧡','💜','💗','💖'];
+  for(let i=0;i<count;i++){
+    const h = document.createElement('div');
+    h.className = 'heart';
+    h.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    const startX = Math.random()*100;
+    const drift = (Math.random()*160-80) + 'px';
+    h.style.left = startX + 'vw';
+    h.style.setProperty('--drift', drift);
+    h.style.fontSize = (14 + Math.random()*18) + 'px';
+    const dur = 3.5 + Math.random()*3.5;
+    h.style.animationDuration = dur + 's';
+    h.style.animationDelay = (Math.random()*1.6) + 's';
+    layer.appendChild(h);
+    setTimeout(()=> h.remove(), (dur + 2)*1000);
+  }
+}
+
+function runConfetti(durationMs){
+  const canvas = document.getElementById('confetti');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#ff4fb8','#ff9a56','#b46eff','#ffffff','#ffd23f'];
+  const particles = Array.from({length:160}).map(()=>({
+    x: Math.random()*canvas.width,
+    y: Math.random()*-canvas.height,
+    r: 3+Math.random()*5,
+    c: colors[Math.floor(Math.random()*colors.length)],
+    vy: 2+Math.random()*3,
+    vx: -1.5+Math.random()*3,
+    rot: Math.random()*360,
+    vr: -6+Math.random()*12
+  }));
+  let start = performance.now();
+  function frame(now){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if(p.y > canvas.height) p.y = -10;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.8);
+      ctx.restore();
+    });
+    if(now - start < durationMs){
+      requestAnimationFrame(frame);
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+async function celebrationSequence(){
+  const gen = clearOutput();
+  document.getElementById('flash').classList.add('on');
+  playHeartbeat(5);
+  createHearts(190);
+  runConfetti(4500);
+  setTimeout(()=> document.getElementById('flash').classList.remove('on'), 2600);
+
+  await delay(500);
+  await typeBlock([
+    '❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️',
+    '',
+    'CONGRATULATIONS',
+    'PRIYA JII',
+    '',
+    '❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️',
+    '',
+    'Mission Complete.',
+    '',
+    'You solved every puzzle.',
+    'You unlocked every clue.',
+    'And you discovered',
+    'one of my favorite dates.',
+    '',
+    '━━━━━━━━━━━━━━',
+    '26 NOVEMBER',
+    '━━━━━━━━━━━━━━',
+    '',
+    'But honestly...',
+    '',
+    'this mission',
+    'was never just about',
+    'my birthday.',
+    '',
+    'It was about creating',
+    'a little moment',
+    'that only you',
+    'would experience.',
+    '',
+    'Thank you...',
+    '',
+    'for every click,',
+    'every smile,',
+    'every answer,',
+    'and every minute',
+    'you spent here.',
+    '',
+    'One little request...',
+    '',
+    'If you remember',
+    '26 November...',
+    '',
+    'and become',
+    'the very first person',
+    'to wish me',
+    'at exactly 12:00 AM...',
+    '',
+    'I promise...',
+    '',
+    "it'll become",
+    'one of my happiest birthdays.',
+    '',
+    '❤️',
+    '',
+    'MISSION STATUS',
+    'SUCCESSFULLY COMPLETED',
+    '',
+    'Made with ❤️',
+    '',
+    'Especially for',
+    '✨ Priya Jii ✨',
+    '',
+    '— Anil'
+  ], gen);
+
+  setTimeout(()=>{ if(gen === screenGen) finalPopup(gen); }, 10000);
+}
+
+async function finalPopup(gen){
+  const modal = document.getElementById('modalLayer');
+  const box = document.getElementById('modalBox');
+  box.innerHTML = '';
+  modal.classList.add('show');
+  const localGen = 'final-' + Date.now();
+  currentModalGen = localGen;
+  const lines = ['SYSTEM NOTICE','','One unread message found.','','Open?'];
+  const ok = await typeModalBlock(box, lines, localGen);
+  if(!ok) return;
+  const yesBtn = document.createElement('button');
+  yesBtn.className='btn'; yesBtn.textContent='❤️ YES'; yesBtn.style.marginTop='14px';
+  box.appendChild(yesBtn);
+  yesBtn.addEventListener('click', async ()=>{
+    ensureAudio();
+    yesBtn.remove();
+    const thankLines = ['','Just one last thing...','','Thank you','','for trusting your curiosity','and reaching the end.','','That was the best reward','I could ask for.','','😊'];
+    const ok2 = await typeModalBlock(box, thankLines, localGen);
+    if(!ok2) return;
+    setTimeout(()=> finalScan(localGen), 5000);
+  });
+}
+
+async function finalScan(localGen){
+  const box = document.getElementById('modalBox');
+  if(currentModalGen !== localGen) return;
+  const lines = [
+    '','...','','One final scan.','','Scanning Visitor...','','😊 Smile Detected.',
+    '','Mission Outcome:','SUCCESS.','','Reason:','',
+    "The creator's goal",'was never','to reveal','his birthday.','',
+    'It was simply','to make','Priya Jii smile.','',
+    'Mission Accomplished. ❤️','','— Anil'
+  ];
+  const ok = await typeModalBlock(box, lines, localGen);
+  if(!ok) return;
+  const closeBtn = document.createElement('button');
+  closeBtn.className='btn'; closeBtn.textContent='🤍 Close'; closeBtn.style.marginTop='14px';
+  closeBtn.addEventListener('click', closeModal);
+  box.appendChild(closeBtn);
+}
+
+/* ============ HIDDEN COMMANDS ============ */
+let keyBuffer = '';
+window.addEventListener('keydown', (e)=>{
+  const tag = (e.target.tagName || '').toLowerCase();
+  if(tag === 'input') return;
+  if(e.key.length === 1 && /[a-z]/i.test(e.key)){
+    keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-12);
+    if(keyBuffer.endsWith('hug')){
+      keyBuffer = '';
+      showHiddenModal([
+        '🤗','','Virtual Hug Requested...','','Sending...','████████████','',
+        '❤️ Delivered Successfully ❤️','','Until the day','this becomes','a real hug...',
+        'please keep','this virtual one.','','😊'
+      ]);
+    } else if(keyBuffer.endsWith('coffee')){
+      keyBuffer = '';
+      showHiddenModal([
+        '☕','','Coffee Invitation Created.','','Status:','Waiting for','Priya Jii ❤️',
+        'to accept...','','😉'
+      ]);
+    }
+  }
+});
+
+async function showHiddenModal(lines){
+  ensureAudio();
+  const modal = document.getElementById('modalLayer');
+  const box = document.getElementById('modalBox');
+  box.innerHTML = '';
+  modal.classList.add('show');
+  const localGen = 'hidden-' + Date.now();
+  currentModalGen = localGen;
+  const ok = await typeModalBlock(box, lines, localGen);
+  if(!ok) return;
+  const closeBtn = document.createElement('button');
+  closeBtn.className='btn'; closeBtn.textContent='⬅ Close'; closeBtn.style.marginTop='14px';
+  closeBtn.addEventListener('click', closeModal);
+  box.appendChild(closeBtn);
+}
+
+/* ============ INIT ============ */
+document.addEventListener('click', ensureAudio, { once:true });
+screen1();
+</script>
+</body>
+</html>
